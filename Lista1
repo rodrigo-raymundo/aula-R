@@ -1,0 +1,105 @@
+#install.packages("knitr")
+#install.packages("devtools")
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+
+install.packages("knitr")
+install.packages("devtools")
+install.packages("tidyverse")
+install.packages("ggplot2")
+
+library(knitr)
+library(devtools)
+library(tidyverse)
+library(ggplot2)
+
+devtools::install_github("tbrugz/ribge")
+
+library(ribge)
+
+pop2020 <- populacao_municipios(2020)
+
+#questão 1: qual a unidade de análise? Municípios 
+
+pop2020 <- filter(pop2020, uf == "SP")
+
+#Questão 2: i) 645 municípios ii) Borá, com 838 Habitantes
+
+# iii) remover variáveis 
+pop2020 <- select(pop2020, -codigo_uf, -populacao_str)
+
+# iv) renomear variáveis
+
+pop2020 <- rename(pop2020, municipio = "nome_munic")
+
+# v) colocando todos os caracteres em letra minúscula
+
+pop2020$municipio <- tolower(pop2020$municipio)
+
+# Questão 3 
+
+# i) média da população
+
+mean(pop2020$populacao)
+##resposta: [1] 71766.41]
+
+# ii) mediana 
+median(pop2020$populacao)
+##resposta: [1] 14141
+
+# iii) desvio padrão
+sd(pop2020$populacao)
+##resposta: [1] 498489.9
+
+# iv) variância
+var(pop2020$populacao)
+##resposta: [1] 248492160624
+
+# Questão 4
+##Criando um gráfico de densidade
+
+gg <- ggplot(pop2020, aes(x=populacao)) +
+  geom_density() +
+  xlab("Populacao") +
+  labs(title = "Gráfico de Densidade") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text = element_text(size = 12)) + 
+  geom_density(fill = "red", alpha = 0.5) 
+  
+
+print(gg)
+
+##resposta: i) o gráfico demonstra que há alta densidade de municípios com população pequena
+## ii) dada a alta variação, a mediana é mais adequada pois não é afetada por outliers
+
+# Questão 5 
+# Filtrar municípios com 50.000 habitantes ou menos
+pop2020_filtrado <- pop2020[pop2020$populacao <= 50000, ]
+
+# Criar o gráfico de densidade para os municípios filtrados
+gg <- ggplot(pop2020_filtrado, aes(x = populacao)) +
+  geom_density() +
+  xlab("População") +
+  labs(title = "Gráfico de Densidade para Municípios com 50.000 Habitantes ou Menos") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text = element_text(size = 12)) + 
+  geom_density(fill = "red", alpha = 0.5) 
+
+print(gg)
+
+##resposta: i) 504 municípios ii) o grafico mostra um pico próximo a 5000 habitantes, sem a distorção de outliers como São Paulo, além de ter uma distribuição menos concentrada.
+
+#Questão 6 
+
+library(ribge)
+pop2020 <- populacao_municipios(2020)
+
+populacao_estado <- pop2020 %>%
+  group_by(uf) %>%
+  summarise(media_populacao = mean(populacao))
+
+kable(populacao_estado)
+
+##resposta: O estado com a maior média é o DF, e o estado com a menor média é o Tocantins
