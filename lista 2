@@ -1,0 +1,201 @@
+# Ver: https://cran.r-project.org/web/packages/PNADcIBGE/PNADcIBGE.pdf
+# Instale o pacote
+install.packages("PNADcIBGE")
+library(PNADcIBGE)
+install.packages("tidylog")
+
+# Importe os dados desejados
+data <- get_pnadc(year=2017,
+                  quarter=4,
+                  selected=FALSE,
+                  vars=c("Ano", "Trimestre", "UF", "V2007", "VD4020", "VD4035"),
+                  design=FALSE,
+                  savedir=tempdir())
+
+# Selecione apenas as vari´aveis ´uteis para esta lista:
+
+
+library(tidyverse)
+library(tidylog)
+
+  data <- data %>%
+    select(Ano, Trimestre, UF, V2007, VD4020, VD4035)
+  
+  # Renomeie as vari´aveis:
+  data <- data %>%
+    rename(Sexo = V2007,
+           Renda = VD4020,
+           Horas_trabalhadas = VD4035)
+  
+  library(dplyr)
+  
+  #QUESTÃO 2 ----> Calcule
+  
+i) a renda media; [1] 1931.283
+ii) a variancia da renda;[1] 9543677
+iii) a renda media dos homens e das mulheres; H: [1] 2077.956 , M: [1] 1720.783
+iv) a renda media em cada estado brasileiro; printado abaixo
+v) a covariancia entre a renda e o numero de horas trabalhada: [1] 5776.864
+
+
+renda_media <- mean(data$Renda, na.rm = TRUE)
+variancia_renda <- var(data$Renda, na.rm = TRUE)
+variancia_renda
+renda_media 
+
+renda_media_por_sexo <- data %>%
+  group_by(Sexo) %>%
+  summarise(renda_media = mean(Renda, na.rm = TRUE))
+
+media_homens <- renda_media_por_sexo %>%
+  filter(Sexo == "Homem") %>%
+  pull(renda_media)
+
+media_mulheres <- renda_media_por_sexo %>%
+  filter(Sexo == "Mulher") %>%
+  pull(renda_media)
+
+media_homens
+media_mulheres
+
+renda_media_por_UF <- data %>%
+  group_by(UF) %>%
+  summarise(renda_media = mean(Renda, na.rm = TRUE))
+
+library(knitr)
+
+kable(renda_media_por_UF, format = "markdown")
+
+covariancia_renda_horas <- cov(data$Renda, data$Horas_trabalhadas, use = "complete.obs")
+covariancia_renda_horas
+
+#QUESTÃO 3 
+
+#Exemplifique a veracidade da equa¸c˜ao, considerando X = Renda, Y = Horas trabalhadas,
+#a = 2 e b = 3.
+#E[aX + bY ] = a × E[X] + b × E[Y ]
+
+# Defina os valores de a e b
+a <- 2
+b <- 3
+
+
+# Calcular E[aX + bY]
+e_aX_bY <- mean(a * data$Renda + b * data$Horas_trabalhadas, na.rm = TRUE)
+
+# Calcular a * E[X] + b * E[Y]
+e_aE_X_bE_Y <- a * mean(data$Renda, na.rm = TRUE) + b * mean(data$Horas_trabalhadas, na.rm = TRUE)
+
+# Verificar se ambas as partes da equação são iguais
+igualdade_verificada <- e_aX_bY == e_aE_X_bE_Y
+
+# Exibir os resultados
+print(paste("E[aX + bY] =", e_aX_bY))
+print(paste("a * E[X] + b * E[Y] =", e_aE_X_bE_Y))
+print(paste("As duas partes são iguais:", igualdade_verificada))
+
+dados_sem_NA <- data[complete.cases(data$Renda, data$Horas_trabalhadas), ]
+
+e_aX_bY <- mean(a * dados_sem_NA$Renda + b * dados_sem_NA$Horas_trabalhadas)
+e_aE_X_bE_Y <- a * mean(dados_sem_NA$Renda) + b * mean(dados_sem_NA$Horas_trabalhadas)
+
+print(paste("E[aX + bY] =", e_aX_bY))
+print(paste("a * E[X] + b * E[Y] =", e_aE_X_bE_Y))
+print(paste("As duas partes são iguais:", igualdade_verificada))
+
+e_aX_bY_rounded <- round(e_aX_bY, 6)
+e_aE_X_bE_Y_rounded <- round(e_aE_X_bE_Y, 6)
+
+igualdade_verificada <- e_aX_bY_rounded == e_aE_X_bE_Y_rounded
+
+print(paste("E[aX + bY] =", e_aX_bY_rounded))
+print(paste("a * E[X] + b * E[Y] =", e_aE_X_bE_Y_rounded))
+print(paste("As duas partes são iguais:", igualdade_verificada))
+
+#QUESTÃO 4 Apresente um gráfico que permita visualização adequada da média da renda por estado brasileiro e sexo.
+
+library(stringr)
+
+renda_media_por_sexo_estado <- dados_sem_NA %>%
+  group_by(UF, Sexo) %>%
+  summarise(Media_Renda = mean(Renda))
+
+
+# Carregue os pacotes necessários
+library(ggplot2)
+library(dplyr)
+
+  
+ggplot(renda_media_por_sexo_estado, aes(x = reorder(UF, -Media_Renda), y = Media_Renda, fill = Sexo)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Média de Renda por Estado e Sexo",
+       x = "Estado",
+       y = "Média de Renda") +
+  theme_minimal() +
+  scale_fill_manual(values = c("Homem" = "blue", "Mulher" = "red")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+install.packages("uf")
+library(uf)
+
+#QUESTÃO 5  
+
+# Subset dos dados com Y entre 10 e 20
+subset_dados <- subset(dados_sem_NA, Horas_trabalhadas >= 10 & Horas_trabalhadas <= 20)
+
+# Calcula a média da variável "Renda" dentro do subconjunto de dados filtrados
+expectativa_condicional_i <- mean(subset_dados$Renda)
+expectativa_condicional_i
+
+subset_dados <- subset(dados_sem_NA, Horas_trabalhadas >= 20)
+
+expectativa_condicional_ii <- mean(subset_dados$Renda)
+
+expectativa_condicional_ii
+
+#QUESTÃO 6
+
+# Remover observações com renda superior a 10.000 reais
+data_10 <- data %>%
+  filter(Renda <= 10000)
+
+# i) Gráfico de densidade da variável renda
+grafico_densidade <- ggplot(data_10, aes(x = Renda)) +
+  geom_density(fill = "blue", alpha = 0.5) +
+  labs(title = "Densidade da Variável Renda",
+       x = "Renda",
+       y = "Densidade") +
+  theme_classic()
+
+# Exibir o gráfico de densidade
+print(grafico_densidade)
+
+# ii) Probabilidade de renda entre 1000 e 2000 reais
+probabilidade_renda <- data_10 %>%
+  filter(Renda > 1000, Renda < 2000) %>%
+  summarize(probabilidade = n() / nrow(data_10)) %>%
+  mutate(probabilidade = round(probabilidade, 2))
+
+print("Probabilidade de Renda entre 1000 e 2000 reais:")
+print(probabilidade_renda)
+
+# iii) Gráfico de densidade da renda dado que Y <= 20
+grafico_densidade_condicional <- ggplot(data_10, aes(x = Renda)) +
+  geom_density(fill = "red", alpha = 0.5) +
+  labs(title = "Densidade da Variável Renda dado Y <= 20",
+       x = "Renda",
+       y = "Densidade") +
+  theme_classic()
+
+# Exibir o gráfico de densidade condicional
+print(grafico_densidade_condicional)
+
+# iv) Probabilidade de renda entre 1000 e 2000 reais dado Y <= 20
+probabilidade_renda_condicional <- data_10 %>%
+  filter(Renda > 1000, Renda < 2000, Horas_trabalhadas <= 20) %>%
+  summarize(probabilidade_condicional = n() / nrow(data_10))
+
+print("Probabilidade de Renda entre 1000 e 2000 reais dado Y <= 20:")
+print(probabilidade_renda_condicional)
+
+chooseCRANmirror()
